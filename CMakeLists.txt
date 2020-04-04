@@ -25,7 +25,12 @@ project(LtbGeometryVisualizationServer LANGUAGES CXX)
 
 option(LTB_BUILD_DDF_EXAMPLES "Build example programs" OFF)
 
-#include(ltb-util/cmake/LtbConfig.cmake) # <-- Additional project options are in here.
+include(ltb-util/cmake/LtbConfig.cmake) # <-- Additional project options are in here.
+
+############
+### Util ###
+############
+add_subdirectory(ltb-util)
 
 ###########
 ### DDF ###
@@ -41,12 +46,11 @@ file(GLOB_RECURSE LTB_SOURCE_FILES
         ${CMAKE_CURRENT_LIST_DIR}/src/ddf/core/*
         )
 
-add_library(ltb_dvh_core ${LTB_SOURCE_FILES})
-#ltb_add_library(ltb_dvh_core 17 ${LTB_SOURCE_FILES})
-#ltb_link_libraries(ltb_dvh_core
-#        PUBLIC
-#        ltb-util
-#        )
+ltb_add_library(ltb_dvh_core 17 ${LTB_SOURCE_FILES})
+ltb_link_libraries(ltb_dvh_core
+        PUBLIC
+        ltb-util
+        )
 include_directories(ltb_dvh_core
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
