@@ -21,7 +21,7 @@
 # SOFTWARE.
 ##########################################################################################
 cmake_minimum_required(VERSION 3.16.5)
-project(LtbGeometryVisualizationServer LANGUAGES CXX)
+project(LtbDynamicDataflow LANGUAGES CXX)
 
 option(LTB_BUILD_DDF_EXAMPLES "Build example programs" OFF)
 
