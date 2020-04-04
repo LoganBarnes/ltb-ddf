@@ -49,14 +49,14 @@ file(GLOB_RECURSE LTB_SOURCE_FILES
 ltb_add_library(ltb_dvh_core 17 ${LTB_SOURCE_FILES})
 ltb_link_libraries(ltb_dvh_core
         PUBLIC
-        ltb-util
+        ltb_util
         )
 include_directories(ltb_dvh_core
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
         )
 
-target_link_libraries(ltb_ddf INTERFACE ltb_gvs_core)
+target_link_libraries(ltb_ddf INTERFACE ltb_dvh_core)
 
 if (LTB_BUILD_DDF_EXAMPLES)
     add_subdirectory(examples)

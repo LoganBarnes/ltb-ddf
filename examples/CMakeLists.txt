@@ -26,22 +26,14 @@ function(add_example _directory)
     file(GLOB_RECURSE LTB_SOURCE_FILES
             LIST_DIRECTORIES false
             CONFIGURE_DEPENDS
-            ${CMAKE_CURRENT_LIST_DIR}/common/*
             ${CMAKE_CURRENT_LIST_DIR}/${_directory}/*
             )
 
     add_executable(${target} ${LTB_SOURCE_FILES})
-    target_link_libraries(${target} PUBLIC ltb_gvs)
-
-    if (_cpp17_enabled)
-        set(CPP_STANDARD 17)
-    else ()
-        set(CPP_STANDARD 11)
-    endif ()
+    target_link_libraries(${target} PUBLIC ltb_ddf)
 
     target_compile_options(${target} PRIVATE ${LTB_COMPILE_FLAGS})
-    ltb_set_properties(${target})
-
+    ltb_set_properties(${target} 17)
 endfunction()
 
-add_example(simple TRUE)
+add_example(simple)
