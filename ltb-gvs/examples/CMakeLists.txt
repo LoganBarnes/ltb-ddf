@@ -35,6 +35,17 @@ function(add_example _directory _cpp17_enabled)
     add_executable(${target} ${LTB_SOURCE_FILES})
     target_link_libraries(${target} PUBLIC ltb_gvs)
 
+    if (${LTB_GVS_ENABLE_DISPLAY})
+        file(GLOB_RECURSE LTB_GVS_EXAMPLE_SHADER_SOURCE_FILES
+                LIST_DIRECTORIES false
+                CONFIGURE_DEPENDS
+                ${CMAKE_CURRENT_LIST_DIR}/shaders/*.cpp
+                )
+        target_link_libraries(${target} PUBLIC ltb_gvs_example_resources)
+        target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/shaders>)
+        target_sources(${target} PUBLIC ${LTB_GVS_EXAMPLE_SHADER_SOURCE_FILES})
+    endif ()
+
     if (_cpp17_enabled)
         set(CPP_STANDARD 17)
     else ()
@@ -60,6 +71,11 @@ function(add_example _directory _cpp17_enabled)
 endfunction()
 
 if (${LTB_GVS_ENABLE_DISPLAY})
+    corrade_add_resource(ltb_gvs_example_RESOURCES ${CMAKE_CURRENT_LIST_DIR}/resources.conf)
+    add_library(ltb_gvs_example_resources ${ltb_gvs_example_RESOURCES})
+    target_link_libraries(ltb_gvs_example_resources PUBLIC LtbExternal::Graphics)
+    message(STATUS "ltb_gvs_example_RESOURCES: ${ltb_gvs_example_RESOURCES}")
+
     add_example(display_window TRUE)
     add_example(intersection TRUE)
     add_example(primitives TRUE)

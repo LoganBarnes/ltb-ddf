@@ -38,5 +38,9 @@ inline auto project_root() -> std::string {
     return "@NATIVE_PROJECT_SOURCE_DIR@" + slash();
 }
 
+inline auto binary_dir() -> std::string {
+    return "@NATIVE_PROJECT_BINARY_DIR@" + slash();
+}
+
 } // namespace paths
 } // namespace ltb

@@ -69,6 +69,16 @@ auto UpdatedInfo::everything() -> UpdatedInfo {
     return info;
 }
 
+auto UpdatedInfo::everything_but_geometry() -> UpdatedInfo {
+    UpdatedInfo info;
+    info.display                 = true;
+    info.display_geometry_format = true;
+    info.display_visible         = true;
+    info.parent                  = true;
+    info.children                = true;
+    return info;
+}
+
 auto UpdatedInfo::children_only() -> UpdatedInfo {
     UpdatedInfo info = {};
     info.children    = true;

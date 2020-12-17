@@ -22,12 +22,16 @@
 // ///////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "forward_declarations.hpp"
+#include "scene_id.hpp"
+
 namespace ltb {
 namespace gvs {
 
 class CustomRenderable {
 public:
-    virtual ~CustomRenderable() = 0;
+    virtual ~CustomRenderable()                                   = 0;
+    virtual auto configure_gui(DisplayInfo* display_info) -> bool = 0;
 };
 
 inline CustomRenderable::~CustomRenderable() = default;

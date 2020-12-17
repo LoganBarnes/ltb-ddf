@@ -22,13 +22,18 @@
 // ///////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "ltb/gvs/core/forward_declarations.hpp"
+#include "ltb/gvs/core/types.hpp"
 
 namespace ltb::gvs {
 
+auto configure_gui(Coloring* coloring) -> bool;
+auto configure_gui(GeometryFormat* geometry_format) -> bool;
+auto configure_gui(Shading* shading) -> bool;
+auto configure_gui(DisplayInfo* display_info, bool display_name_only = false) -> bool;
+
 /// \brief Displays an ImGui based GUI for the given scene.
-/// \param scene - The scene used to display the GUI
-/// \return true if the scene has changed, false otherwise
+/// \param scene - The scene used to display the GUI.
+/// \return true if the scene has changed, false otherwise.
 auto configure_gui(Scene* scene) -> bool;
 
 } // namespace ltb::gvs

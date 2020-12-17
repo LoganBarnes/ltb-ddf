@@ -31,6 +31,7 @@
 
 // external
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Utility/Resource.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/Primitives/Cube.h>
 #include <Magnum/Trade/MeshData.h>
@@ -50,6 +51,8 @@ MainWindow::MainWindow(const Arguments& arguments)
                                       .setSize({1280, 720})
                                       .setWindowFlags(Configuration::WindowFlag::Resizable)) {
 
+    renderable_ = std::make_shared<ExampleRenderable>();
+
     auto rotation = Matrix4::rotationY(30.0_degf) * Matrix4::rotationX(-15.0_degf);
     auto eye      = rotation.transformPoint({0.f, 0.f, 20.f});
     auto center   = Vector3{};
@@ -59,6 +62,8 @@ MainWindow::MainWindow(const Arguments& arguments)
     arcball_camera_->update(true);
 
     scene_.add_item(gvs::SetReadableId("Axes"), gvs::SetPrimitive(gvs::Axes{}));
+
+    scene_.add_item(gvs::SetReadableId("Renderable"), gvs::SetRenderable(renderable_));
 
     {
         Trade::MeshData const cube = Primitives::cubeSolid();
@@ -122,12 +127,19 @@ MainWindow::MainWindow(const Arguments& arguments)
 
     auto test_scene_root = scene_.add_item(gvs::SetReadableId("Test Scene"), gvs::SetVisible(false));
     build_test_scene(&scene_, test_scene_root);
+
+    start_time_ = std::chrono::steady_clock::now();
+
+    this->reset_draw_counter();
 }
 
 MainWindow::~MainWindow() = default;
 
 void MainWindow::update() {
-    // Nothing to do
+    current_time_ = std::chrono::steady_clock::now();
+    renderable_->update(current_time_ - start_time_);
+
+    this->reset_draw_counter();
 }
 
 void MainWindow::render(const gvs::CameraPackage& camera_package) const {
@@ -162,6 +174,7 @@ void MainWindow::resize(const Vector2i& viewport) {
 } // namespace ltb::example
 
 auto main(int argc, char* argv[]) -> int {
+    CORRADE_RESOURCE_INITIALIZE(ltb_gvs_example_RESOURCES)
     ltb::example::MainWindow app({argc, argv});
     return app.exec();
 }

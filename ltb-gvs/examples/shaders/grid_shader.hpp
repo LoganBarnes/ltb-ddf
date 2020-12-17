@@ -22,15 +22,39 @@
 // ///////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-namespace ltb {
-namespace gvs {
+// project
+#include "ltb/gvs/core/types.hpp"
 
-class Scene;
-class SceneUpdateHandler;
+// external
+#include <Magnum/GL/AbstractShaderProgram.h>
+#include <Magnum/Math/Color.h>
 
-struct GeometryInfo;
-struct SceneItemInfo;
-struct DisplayInfo;
+namespace ltb::example {
 
-} // namespace gvs
-} // namespace ltb
+class GridShader : public Magnum::GL::AbstractShaderProgram {
+public:
+    enum : Magnum::UnsignedInt { ColorOutput = 0, IdOutput = 1 };
+
+    explicit GridShader();
+
+    auto set_projection_from_world_matrix(Magnum::Matrix4 const& projection_from_world) -> GridShader&;
+
+    auto set_color(Magnum::Color3 const& color) -> GridShader&;
+    auto set_grid_width(float grid_width) -> GridShader&;
+    auto set_grid_divisions(int grid_divisions) -> GridShader&;
+
+    auto set_id(unsigned const& id) -> GridShader&;
+    auto set_time(float time_secs) -> GridShader&;
+
+private:
+    int projection_from_world_uniform_location_ = -1;
+
+    int color_uniform_location_          = -1;
+    int grid_width_uniform_location_     = -1;
+    int grid_divisions_uniform_location_ = -1;
+
+    int id_uniform_location_        = -1;
+    int time_secs_uniform_location_ = -1;
+};
+
+} // namespace ltb::example

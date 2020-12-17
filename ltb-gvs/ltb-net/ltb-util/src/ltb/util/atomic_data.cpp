@@ -34,7 +34,7 @@ namespace {
 
 using namespace std::chrono_literals;
 
-TEST_CASE("[atomic_data] atomic_data_wait_timeout") {
+TEST_CASE("[ltb][util][atomic] atomic_data_wait_timeout") {
     using namespace ltb;
 
     struct SharedData {
@@ -70,7 +70,7 @@ TEST_CASE("[atomic_data] atomic_data_wait_timeout") {
     shared_data.use_safely([&]([[maybe_unused]] const SharedData& data) { CHECK(data.update_happened); });
 }
 
-TEST_CASE("[atomic_data] atomic_data_notify_all") {
+TEST_CASE("[ltb][util][atomic] atomic_data_notify_all") {
     using namespace ltb;
 
     struct SharedData {
@@ -101,7 +101,7 @@ TEST_CASE("[atomic_data] atomic_data_notify_all") {
     shared_data.use_safely([&]([[maybe_unused]] const SharedData& data) { CHECK(data.num_threads == threads.size()); });
 }
 
-TEST_CASE_TEMPLATE("[atomic_data] interleaved_atomic_data", T, short, int, unsigned, float, double) {
+TEST_CASE_TEMPLATE("[ltb][util][atomic] interleaved_atomic_data", T, short, int, unsigned, float, double) {
     using namespace ltb;
 
     struct SharedData {

@@ -48,7 +48,7 @@ auto get_relative_path_string(const std::string& path) -> std::string {
     return path;
 }
 
-TEST_CASE("[util] get relative path string") {
+TEST_CASE("[ltb][util] get relative path string") {
     CHECK(get_relative_path_string("/no/project/root") == "/no/project/root");
     CHECK(get_relative_path_string(paths::project_root() + "with/project/root") == "with/project/root");
 }
@@ -124,13 +124,13 @@ namespace {
 
 } // namespace
 
-TEST_CASE("[util] check error helpers") {
+TEST_CASE("[ltb][util] check error helpers") {
     CHECK(LTB_MAKE_ERROR("Error message").error_message() == "Error message");
     CHECK(LTB_MAKE_ERROR("blarg") == LTB_MAKE_ERROR("blarg"));
     CHECK(LTB_MAKE_ERROR("this is bad").severity() == ltb::util::Error::Severity::Error);
 }
 
-TEST_CASE("[util] check warning helpers") {
+TEST_CASE("[ltb][util] check warning helpers") {
     CHECK(LTB_MAKE_WARNING("Warning message").error_message() == "Warning message");
     CHECK(LTB_MAKE_WARNING("blarg") == LTB_MAKE_WARNING("blarg"));
     CHECK(LTB_MAKE_WARNING("not so bad").severity() == ltb::util::Error::Severity::Warning);

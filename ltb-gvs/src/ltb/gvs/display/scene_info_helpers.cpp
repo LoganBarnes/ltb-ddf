@@ -36,7 +36,10 @@ auto replace_if_present(SceneItemInfo* info, SparseSceneItemInfo&& new_info) -> 
     if (new_info.geometry) {
         auto& geometry_info = info->geometry_info;
 
-        if (new_info.geometry->is<Primitive>()) {
+        if (new_info.geometry->is<std::shared_ptr<CustomRenderable>>()) {
+            info->renderable = new_info.geometry->get<std::shared_ptr<CustomRenderable>>();
+
+        } else if (new_info.geometry->is<Primitive>()) {
             make_primitive(info, new_info.geometry->get<Primitive>());
 
         } else {

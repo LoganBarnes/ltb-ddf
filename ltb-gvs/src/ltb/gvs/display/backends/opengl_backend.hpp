@@ -45,8 +45,25 @@
 // standard
 #include <list>
 #include <memory>
+#include <variant>
 
 namespace ltb::gvs {
+
+class OpenglRenderable;
+
+struct MeshData {
+    explicit MeshData() = default;
+
+    Magnum::GL::Buffer vertex_buffer;
+    int                vbo_count = 0;
+
+    Magnum::GL::Buffer index_buffer;
+    int                ibo_count = 0;
+
+    Magnum::GL::Mesh mesh;
+
+    OpaqueDrawable* drawable = nullptr;
+};
 
 class OpenglBackend : public DisplayBackend {
 public:
@@ -65,34 +82,36 @@ public:
     using Scene3D  = Magnum::SceneGraph::Scene<Magnum::SceneGraph::MatrixTransformation3D>;
     using Object3D = Magnum::SceneGraph::Object<Magnum::SceneGraph::MatrixTransformation3D>;
 
-    struct ObjectMeshPackage {
+    struct OpenglItem {
         SceneId  scene_id     = gvs::nil_id();
         unsigned intersect_id = 0u;
 
-        Magnum::GL::Buffer vertex_buffer;
-        int                vbo_count = 0;
+        std::variant<MeshData, OpenglRenderable*> data;
 
-        Magnum::GL::Buffer index_buffer;
-        int                ibo_count = 0;
-
-        Magnum::GL::Mesh mesh;
-        Object3D*        object   = nullptr;
-        OpaqueDrawable*  drawable = nullptr;
+        Object3D* object = nullptr;
 
         Magnum::SceneGraph::DrawableGroup3D* drawable_group_when_visible = nullptr;
         bool                                 visible                     = true;
 
-        explicit ObjectMeshPackage(SceneId                              id,
-                                   Object3D*                            obj,
-                                   Magnum::SceneGraph::DrawableGroup3D* drawables,
-                                   unsigned                             id_for_intersect,
-                                   GeneralShader&                       shader);
+        [[nodiscard]] auto drawable() const -> Magnum::SceneGraph::Drawable3D*;
+
+        explicit OpenglItem(SceneId                              id,
+                            Object3D*                            obj,
+                            Magnum::SceneGraph::DrawableGroup3D* drawables,
+                            unsigned                             id_for_intersect,
+                            GeneralShader&                       shader);
+
+        explicit OpenglItem(SceneId                              id,
+                            Object3D*                            obj,
+                            Magnum::SceneGraph::DrawableGroup3D* drawables,
+                            unsigned                             id_for_intersect,
+                            OpenglRenderable*                    ogl_renderable);
     };
 
 private:
     GeneralShader shader_;
 
-    using ObjectList = std::list<ObjectMeshPackage>;
+    using ObjectList = std::list<OpenglItem>;
 
     ObjectList                                                packages_; // TODO: make items deletable
     std::unordered_map<SceneId, ObjectList::iterator>         id_to_pkgs_;
@@ -116,16 +135,19 @@ private:
     Magnum::GL::Renderbuffer        id_rbo_;
     Magnum::GL::Renderbuffer        depth_rbo_;
 
-    auto add_package(SceneId id, Object3D* obj, Magnum::SceneGraph::DrawableGroup3D* drawables, GeneralShader& shader)
+    auto add_item(SceneId id, Object3D* obj, Magnum::SceneGraph::DrawableGroup3D* drawables, GeneralShader& shader)
+        -> void;
+    auto
+    add_item(SceneId id, Object3D* obj, Magnum::SceneGraph::DrawableGroup3D* drawables, OpenglRenderable* renderable)
         -> void;
 
-    auto remove_package(SceneId const& item_id) -> void;
-    auto remove_package(Object3D const* obj) -> void;
+    auto remove_item(SceneId const& item_id) -> void;
+    auto remove_item(Object3D const* obj) -> void;
 
-    auto get_package(SceneId const& id) -> ObjectMeshPackage&;
-    auto get_package(SceneId const& id) const -> ObjectMeshPackage const&;
+    auto get_item(SceneId const& id) -> OpenglItem&;
+    auto get_item(SceneId const& id) const -> OpenglItem const&;
 
-    auto update_drawable_group(ObjectMeshPackage* mesh_package, bool parent_visible) -> void;
+    auto update_drawable_group(OpenglItem* ogl_item, bool parent_visible) -> void;
 };
 
 } // namespace ltb::gvs

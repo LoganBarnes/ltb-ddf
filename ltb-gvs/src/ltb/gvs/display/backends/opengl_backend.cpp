@@ -26,6 +26,8 @@
 #include "ltb/gvs/display/magnum_conversions.hpp"
 #include "ltb/util/container_utils.hpp"
 #include "ltb/util/result.hpp"
+#include "ltb/util/variant_utils.hpp"
+#include "opengl_renderable.hpp"
 
 // external
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -39,28 +41,29 @@
 // standard
 #include <iostream>
 
+using namespace Magnum;
+
 namespace ltb::gvs {
 namespace {
 
-auto update_vbo(OpenglBackend::ObjectMeshPackage* mesh_package, GeometryInfo const& geometry_info) -> void {
+auto update_vbo(MeshData* mesh_data, GeometryInfo const& geometry_info) -> void {
 
     std::vector<float> buffer_data;
     GLintptr           offset = 0;
-    mesh_package->vbo_count   = 0;
+    mesh_data->vbo_count      = 0;
 
-    auto update_attribute
-        = [&mesh_package, &offset, &buffer_data](auto const& attribute, auto const& shader_attribute) {
-              buffer_data.insert(buffer_data.end(), attribute.data(), (attribute.data() + attribute.size()));
-              mesh_package->mesh.addVertexBuffer(mesh_package->vertex_buffer, offset, shader_attribute);
+    auto update_attribute = [&mesh_data, &offset, &buffer_data](auto const& attribute, auto const& shader_attribute) {
+        buffer_data.insert(buffer_data.end(), attribute.data(), (attribute.data() + attribute.size()));
+        mesh_data->mesh.addVertexBuffer(mesh_data->vertex_buffer, offset, shader_attribute);
 
-              auto isize = static_cast<int>(attribute.size());
-              offset += isize * static_cast<int>(sizeof(float));
-              return isize;
-          };
+        auto isize = static_cast<int>(attribute.size());
+        offset += isize * static_cast<int>(sizeof(float));
+        return isize;
+    };
 
     if (!geometry_info.positions.empty()) {
-        auto attribute_size     = update_attribute(geometry_info.positions, GeneralShader::Position{});
-        mesh_package->vbo_count = attribute_size / 3;
+        auto attribute_size  = update_attribute(geometry_info.positions, GeneralShader::Position{});
+        mesh_data->vbo_count = attribute_size / 3;
     }
 
     if (!geometry_info.normals.empty()) {
@@ -75,40 +78,58 @@ auto update_vbo(OpenglBackend::ObjectMeshPackage* mesh_package, GeometryInfo con
         update_attribute(geometry_info.vertex_colors, GeneralShader::VertexColor{});
     }
 
-    mesh_package->vertex_buffer.setData(buffer_data, Magnum::GL::BufferUsage::StaticDraw);
-    mesh_package->mesh.setCount(mesh_package->vbo_count);
+    mesh_data->vertex_buffer.setData(buffer_data, GL::BufferUsage::StaticDraw);
+    mesh_data->mesh.setCount(mesh_data->vbo_count);
 }
 
-auto update_ibo(OpenglBackend::ObjectMeshPackage* mesh_package, std::vector<unsigned> const& indices) {
+auto update_ibo(MeshData* mesh_data, std::vector<unsigned> const& indices) {
     if (!indices.empty()) {
         Corrade::Containers::Array<char> index_data;
-        Magnum::MeshIndexType            index_type;
-        std::tie(index_data, index_type) = Magnum::MeshTools::compressIndices(indices);
-        mesh_package->index_buffer.setData(index_data, Magnum::GL::BufferUsage::StaticDraw);
+        MeshIndexType                    index_type;
+        std::tie(index_data, index_type) = MeshTools::compressIndices(indices);
+        mesh_data->index_buffer.setData(index_data, GL::BufferUsage::StaticDraw);
 
-        mesh_package->ibo_count = static_cast<int>(indices.size());
+        mesh_data->ibo_count = static_cast<int>(indices.size());
 
-        mesh_package->mesh.setCount(mesh_package->ibo_count).setIndexBuffer(mesh_package->index_buffer, 0, index_type);
+        mesh_data->mesh.setCount(mesh_data->ibo_count).setIndexBuffer(mesh_data->index_buffer, 0, index_type);
     }
 }
 
 } // namespace
 
-OpenglBackend::ObjectMeshPackage::ObjectMeshPackage(SceneId                              id,
-                                                    Object3D*                            obj,
-                                                    Magnum::SceneGraph::DrawableGroup3D* drawables,
-                                                    unsigned                             id_for_intersect,
-                                                    GeneralShader&                       shader)
-    : scene_id(id), intersect_id(id_for_intersect), object(obj) {
-    mesh.setCount(0).setPrimitive(to_magnum(default_geometry_format));
-    drawable = new OpaqueDrawable(*object, drawables, mesh, intersect_id, shader);
+OpenglBackend::OpenglItem::OpenglItem(
+    SceneId id, Object3D* obj, SceneGraph::DrawableGroup3D* drawables, unsigned id_for_intersect, GeneralShader& shader)
+    : scene_id(id), intersect_id(id_for_intersect), data(MeshData()), object(obj) {
+    auto& mesh_data = std::get<MeshData>(data);
+    mesh_data.mesh.setCount(0).setPrimitive(to_magnum(default_geometry_format));
+    mesh_data.drawable = new OpaqueDrawable(*object, drawables, mesh_data.mesh, intersect_id, shader);
 }
 
-OpenglBackend::OpenglBackend() : framebuffer_(Magnum::GL::defaultFramebuffer.viewport()) {
+OpenglBackend::OpenglItem::OpenglItem(SceneId                      id,
+                                      Object3D*                    obj,
+                                      SceneGraph::DrawableGroup3D* drawables,
+                                      unsigned                     id_for_intersect,
+                                      OpenglRenderable*            ogl_renderable)
+    : scene_id(id), intersect_id(id_for_intersect), data(ogl_renderable), object(obj) {
+    auto* renderable = std::get<OpenglRenderable*>(data);
+    renderable->init_gl_types(*object, drawables, id_for_intersect);
+}
+
+auto OpenglBackend::OpenglItem::drawable() const -> SceneGraph::Drawable3D* {
+    return std::visit(util::Visitor{
+                          [](const MeshData& mesh_data) -> SceneGraph::Drawable3D* { return mesh_data.drawable; },
+                          [](const OpenglRenderable* renderable) -> SceneGraph::Drawable3D* {
+                              return renderable->drawable();
+                          },
+                      },
+                      data);
+}
+
+OpenglBackend::OpenglBackend() : framebuffer_(GL::defaultFramebuffer.viewport()) {
     using namespace Magnum;
 
     camera_object_.setParent(&scene_);
-    camera_ = new Magnum::SceneGraph::Camera3D(camera_object_); // Memory control is handled elsewhere
+    camera_ = new SceneGraph::Camera3D(camera_object_); // Memory control is handled elsewhere
 
     /* Setup renderer and shader defaults */
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
@@ -173,36 +194,54 @@ auto OpenglBackend::render(CameraPackage const& camera_package) const -> void {
     GL::defaultFramebuffer.bind();
 }
 
-auto OpenglBackend::resize(Magnum::Vector2i const& viewport) -> void {
+auto OpenglBackend::resize(Vector2i const& viewport) -> void {
     framebuffer_.setViewport({{0u, 0u}, viewport});
 }
 
 auto OpenglBackend::added(SceneId const& item_id, SceneItemInfo const& item) -> void {
-    if (item_id == gvs::nil_id()) {
-        add_package(item_id, &scene_.addChild<Object3D>(), nullptr, shader_);
+
+    auto* obj = (item_id == gvs::nil_id()) ? &scene_.addChild<Object3D>()
+                                           : &get_item(item.parent).object->addChild<Object3D>();
+
+    if (item.renderable) {
+        if (auto* renderable = dynamic_cast<OpenglRenderable*>(item.renderable.get())) {
+            add_item(item_id, obj, nullptr, renderable);
+        } else {
+            throw std::runtime_error("Backend/Renderable mismatch. "
+                                     "`OpenglBackend` can only process `OpenglRenderable`s");
+        }
+        updated(item_id, UpdatedInfo::everything_but_geometry(), item);
+
     } else {
-        add_package(item_id, &get_package(item.parent).object->addChild<Object3D>(), nullptr, shader_);
+        add_item(item_id, obj, nullptr, shader_);
+        updated(item_id, UpdatedInfo::everything(), item);
     }
-    updated(item_id, UpdatedInfo::everything(), item);
 }
 
 auto OpenglBackend::updated(SceneId const& item_id, UpdatedInfo const& updated, SceneItemInfo const& item) -> void {
-    ObjectMeshPackage& mesh_package = *id_to_pkgs_.at(item_id);
+    OpenglItem& ogl_item = *id_to_pkgs_.at(item_id);
 
-    if (updated.geometry) {
-        auto const& geometry_info = item.geometry_info;
-
-        if (updated.geometry_vertices) {
-            update_vbo(&mesh_package, geometry_info);
-        }
-
-        if (updated.geometry_indices) {
-            update_ibo(&mesh_package, geometry_info.indices);
-        }
+    if (std::holds_alternative<OpenglRenderable*>(ogl_item.data) && updated.geometry) {
+        throw std::runtime_error("Geometry can not be updated when using a renderable");
     }
 
-    if (updated.display_geometry_format) {
-        mesh_package.mesh.setPrimitive(to_magnum(item.display_info.geometry_format));
+    if (auto* mesh_data = std::get_if<MeshData>(&ogl_item.data)) {
+
+        if (updated.geometry) {
+            auto const& geometry_info = item.geometry_info;
+
+            if (updated.geometry_vertices) {
+                update_vbo(mesh_data, geometry_info);
+            }
+
+            if (updated.geometry_indices) {
+                update_ibo(mesh_data, geometry_info.indices);
+            }
+        }
+
+        if (updated.display_geometry_format) {
+            mesh_data->mesh.setPrimitive(to_magnum(item.display_info.geometry_format));
+        }
     }
 
     // TODO: Handle parent and children updates properly
@@ -215,30 +254,35 @@ auto OpenglBackend::updated(SceneId const& item_id, UpdatedInfo const& updated, 
             throw std::invalid_argument("Parent id '" + to_string(parent) + "' not found in scene");
         }
 
-        mesh_package.object->setParent(id_to_pkgs_.at(parent)->object);
+        ogl_item.object->setParent(id_to_pkgs_.at(parent)->object);
     }
 
     if (updated.display) {
-        mesh_package.drawable->update_display_info(item.display_info);
-        mesh_package.visible = item.display_info.visible;
+        ogl_item.visible = item.display_info.visible;
 
         if (item.renderable) {
-            mesh_package.drawable_group_when_visible = &custom_renderable_drawables_;
+            ogl_item.drawable_group_when_visible = &custom_renderable_drawables_;
 
         } else if (item.display_info.wireframe_only) {
-            mesh_package.drawable_group_when_visible = &wireframe_drawables_;
+            ogl_item.drawable_group_when_visible = &wireframe_drawables_;
 
         } else if (item.display_info.opacity < 1.f) {
-            mesh_package.drawable_group_when_visible = &transparent_drawables_;
+            ogl_item.drawable_group_when_visible = &transparent_drawables_;
 
         } else {
-            mesh_package.drawable_group_when_visible = &opaque_drawables_;
+            ogl_item.drawable_group_when_visible = &opaque_drawables_;
         }
 
-        auto const& parent_mesh_package = *id_to_pkgs_.at(item.parent);
-        auto const  parent_visible      = (parent_mesh_package.drawable->group() != &non_visible_drawables_);
+        std::visit(util::Visitor{
+                       [&item](MeshData& mesh_data) { mesh_data.drawable->set_display_info(item.display_info); },
+                       [&item](OpenglRenderable* renderable) { renderable->set_display_info(item.display_info); },
+                   },
+                   ogl_item.data);
 
-        update_drawable_group(&mesh_package, parent_visible);
+        auto const& parent_ogl_item = *id_to_pkgs_.at(item.parent);
+        auto const  parent_visible  = (parent_ogl_item.drawable()->group() != &non_visible_drawables_);
+
+        update_drawable_group(&ogl_item, parent_visible);
     }
 }
 
@@ -247,7 +291,7 @@ auto OpenglBackend::removed(SceneId const & /*item_id*/) -> void {}
 auto OpenglBackend::reset_items(SceneItems const& items) -> void {
     // Remove all items from the scene
     if (util::has_key(id_to_pkgs_, gvs::nil_id())) {
-        scene_.children().erase(get_package(gvs::nil_id()).object);
+        scene_.children().erase(get_item(gvs::nil_id()).object);
     }
     id_to_pkgs_.clear();
     obj_to_pkgs_.clear();
@@ -266,10 +310,8 @@ auto OpenglBackend::reset_items(SceneItems const& items) -> void {
     }
 }
 
-auto OpenglBackend::add_package(SceneId                              id,
-                                Object3D*                            obj,
-                                Magnum::SceneGraph::DrawableGroup3D* drawables,
-                                GeneralShader&                       shader) -> void {
+auto OpenglBackend::add_item(SceneId id, Object3D* obj, SceneGraph::DrawableGroup3D* drawables, GeneralShader& shader)
+    -> void {
     packages_.emplace_back(id, obj, drawables, next_intersect_id_++, shader);
     auto iter = std::prev(packages_.end());
     id_to_pkgs_.emplace(iter->scene_id, iter);
@@ -277,56 +319,67 @@ auto OpenglBackend::add_package(SceneId                              id,
     intersect_id_to_scene_id_.emplace(iter->intersect_id, iter->scene_id);
 }
 
-auto OpenglBackend::remove_package(gvs::SceneId const& item_id) -> void {
+auto OpenglBackend::add_item(SceneId                      id,
+                             Object3D*                    obj,
+                             SceneGraph::DrawableGroup3D* drawables,
+                             OpenglRenderable*            renderable) -> void {
+    packages_.emplace_back(id, obj, drawables, next_intersect_id_++, renderable);
+    auto iter = std::prev(packages_.end());
+    id_to_pkgs_.emplace(iter->scene_id, iter);
+    obj_to_pkgs_.emplace(iter->object, iter);
+    intersect_id_to_scene_id_.emplace(iter->intersect_id, iter->scene_id);
+}
+
+auto OpenglBackend::remove_item(gvs::SceneId const& item_id) -> void {
     auto iter = id_to_pkgs_.at(item_id);
     id_to_pkgs_.erase(item_id);
     obj_to_pkgs_.erase(iter->object);
     packages_.erase(iter);
 }
 
-auto OpenglBackend::remove_package(Object3D const* obj) -> void {
+auto OpenglBackend::remove_item(Object3D const* obj) -> void {
     auto iter = obj_to_pkgs_.at(obj);
     obj_to_pkgs_.erase(obj);
     id_to_pkgs_.erase(iter->scene_id);
     packages_.erase(iter);
 }
 
-auto OpenglBackend::get_package(gvs::SceneId const& id) -> ObjectMeshPackage& {
+auto OpenglBackend::get_item(gvs::SceneId const& id) -> OpenglItem& {
     return *id_to_pkgs_.at(id);
 }
 
-auto OpenglBackend::get_package(gvs::SceneId const& id) const -> ObjectMeshPackage const& {
+auto OpenglBackend::get_item(gvs::SceneId const& id) const -> OpenglItem const& {
     return *id_to_pkgs_.at(id);
 }
 
-auto OpenglBackend::update_drawable_group(ObjectMeshPackage* mesh_package, bool parent_visible) -> void {
+auto OpenglBackend::update_drawable_group(OpenglItem* ogl_item, bool parent_visible) -> void {
 
-    auto update_children = [this, &mesh_package](bool parent_visiblity) {
-        for (auto const& child : mesh_package->object->children()) {
+    auto update_children = [this, &ogl_item](bool parent_visibility) {
+        for (auto const& child : ogl_item->object->children()) {
             auto& child_package = *obj_to_pkgs_.at(&child);
-            update_drawable_group(&child_package, parent_visiblity);
+            update_drawable_group(&child_package, parent_visibility);
         }
     };
 
-    auto currently_visible = (mesh_package->drawable->group() != &non_visible_drawables_);
+    auto currently_visible = (ogl_item->drawable()->group() != &non_visible_drawables_);
 
     if (!parent_visible) {
         if (currently_visible) {
-            non_visible_drawables_.add(*mesh_package->drawable);
+            non_visible_drawables_.add(*ogl_item->drawable());
             update_children(false);
         }
         return;
     }
 
     // Currently visible but shouldn't be. Hide item and all children.
-    if (currently_visible && !mesh_package->visible) {
-        non_visible_drawables_.add(*mesh_package->drawable);
+    if (currently_visible && !ogl_item->visible) {
+        non_visible_drawables_.add(*ogl_item->drawable());
         update_children(false);
         return;
     }
 
-    if (mesh_package->visible) {
-        mesh_package->drawable_group_when_visible->add(*mesh_package->drawable);
+    if (ogl_item->visible) {
+        ogl_item->drawable_group_when_visible->add(*ogl_item->drawable());
         update_children(true);
     }
 }

@@ -28,11 +28,9 @@
 // external
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Shader.h>
-#include <Magnum/Math/Matrix4.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/MatrixTransformation3D.h>
 #include <Magnum/SceneGraph/Object.h>
-#include <Magnum/SceneGraph/SceneGraph.h>
 
 using namespace Magnum;
 
@@ -49,7 +47,7 @@ OpaqueDrawable::OpaqueDrawable(SceneGraph::Object<SceneGraph::MatrixTransformati
       intersect_id_(intersect_id),
       shader_(shader) {}
 
-auto OpaqueDrawable::update_display_info(DisplayInfo const& display_info) -> void {
+auto OpaqueDrawable::set_display_info(DisplayInfo const& display_info) -> void {
     object_.setTransformation(to_magnum(display_info.transformation));
     coloring_      = display_info.coloring;
     uniform_color_ = to_magnum<Magnum::Color3>(display_info.uniform_color);

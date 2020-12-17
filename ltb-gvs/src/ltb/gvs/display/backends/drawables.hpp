@@ -41,7 +41,7 @@ public:
 
     ~OpaqueDrawable() override = default;
 
-    auto update_display_info(const DisplayInfo& display_info) -> void;
+    auto set_display_info(const DisplayInfo& display_info) -> void;
 
 private:
     void draw(Magnum::Matrix4 const& transformation_matrix, Magnum::SceneGraph::Camera3D& camera) override;

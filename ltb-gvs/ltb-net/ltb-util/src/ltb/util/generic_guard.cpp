@@ -63,7 +63,7 @@ bool pop_called  = false;
 
 } // namespace
 
-TEST_CASE("[util] generic_guard") {
+TEST_CASE("[ltb][util] generic_guard") {
     using namespace ltb;
 
     push_called = false;
