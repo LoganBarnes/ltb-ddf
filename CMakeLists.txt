@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.16.5)
 project(LtbDynamicDataflow LANGUAGES CXX)
 
-option(LTB_BUILD_DDF_EXAMPLES "Build example programs" OFF)
+option(LTB_DDF_BUILD_EXAMPLES "Build example programs" OFF)
 
 include(ltb-util/cmake/LtbConfig.cmake) # <-- Additional project options are in here.
 
@@ -58,6 +58,6 @@ include_directories(ltb_dvh_core
 
 target_link_libraries(ltb_ddf INTERFACE ltb_dvh_core)
 
-if (LTB_BUILD_DDF_EXAMPLES)
+if (${LTB_DDF_BUILD_EXAMPLES})
     add_subdirectory(examples)
 endif ()
