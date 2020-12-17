@@ -49,6 +49,7 @@ ltb_add_library(ltb_ddf_core
 ltb_link_libraries(ltb_ddf_core
         PUBLIC
         Ltb::Util
+        LtbExternal::Flexcore
         )
 include_directories(ltb_ddf_core
         PUBLIC
@@ -69,7 +70,6 @@ ltb_link_libraries(ltb_ddf_viewer
         Ltb::Gvs
         Ltb::Ddf
         LtbExternal::ImGuiNodeEditor
-        LtbExternal::Flexcore
         )
 add_library(Ltb::DdfViewer ALIAS ltb_ddf_viewer)
 

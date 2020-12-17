@@ -30,7 +30,7 @@ function(add_example _directory)
             )
 
     add_executable(${target} ${LTB_SOURCE_FILES})
-    target_link_libraries(${target} PUBLIC ltb_ddf)
+    target_link_libraries(${target} PUBLIC Ltb::DdfViewer)
 
     target_compile_options(${target} PRIVATE ${LTB_COMPILE_FLAGS})
     ltb_set_properties(${target} 17)
