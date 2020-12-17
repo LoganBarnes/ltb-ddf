@@ -20,17 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ///////////////////////////////////////////////////////////////////////////////////////
-#pragma once
 
-namespace ltb {
-namespace gvs {
+// version will be inserted automagically
 
-class Scene;
-class SceneUpdateHandler;
+/*
+ * Uniforms
+ */
+uniform vec3  color   = { 1.f, 0.9f, 0.7f };
+uniform float opacity = 1.f;
 
-struct GeometryInfo;
-struct SceneItemInfo;
-struct DisplayInfo;
+uniform uint id = 0;
 
-} // namespace gvs
-} // namespace ltb
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out uint out_id;
+
+void main()
+{
+    out_id    = id;
+    out_color = vec4(color, opacity);
+}

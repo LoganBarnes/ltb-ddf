@@ -31,7 +31,7 @@ auto starts_with(const std::string& str, const std::string& prefix) -> bool {
     return str.compare(0, prefix.length(), prefix) == 0;
 }
 
-TEST_CASE("[ltb-util] string_starts_with") {
+TEST_CASE("[ltb][util] string_starts_with") {
     CHECK(starts_with("", ""));
     CHECK(starts_with("check for prefix", ""));
     CHECK(starts_with("check for prefix", "c"));

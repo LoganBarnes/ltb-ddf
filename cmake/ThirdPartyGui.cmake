@@ -22,11 +22,11 @@
 ##########################################################################################
 FetchContent_Declare(ltb_imgui_dl
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG docking
+        GIT_TAG 06e87014f25ee2ac75661cff624dd2ef0a9b62ea # docking
         )
 FetchContent_Declare(ltb_magnum_integration_dl
-        GIT_REPOSITORY https://github.com/mosra/magnum-integration.git
-        GIT_TAG v2020.06
+        GIT_REPOSITORY https://github.com/LoganBarnes/magnum-integration.git
+        GIT_TAG 2b890def61c6cd2bb208375d5e662b29af01ab50 # docking
         )
 
 ltb_add_external(gui Gui)

@@ -22,15 +22,45 @@
 // ///////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-namespace ltb {
-namespace gvs {
+// project
+#include "grid_shader.hpp"
+#include "ltb/gvs/display/backends/opengl_renderable.hpp"
+#include "ltb/util/duration.hpp"
 
-class Scene;
-class SceneUpdateHandler;
+// external
+#include <Magnum/GL/Mesh.h>
 
-struct GeometryInfo;
-struct SceneItemInfo;
-struct DisplayInfo;
+// standard
+#include <memory>
 
-} // namespace gvs
-} // namespace ltb
+namespace ltb::example {
+
+class ExampleRenderable : public gvs::OpenglRenderable {
+public:
+    ExampleRenderable();
+
+    // gvs::OpenGLRenderable start
+    ~ExampleRenderable() override;
+
+    auto configure_gui(gvs::DisplayInfo* display_info) -> bool override;
+
+    auto init_gl_types(Magnum::SceneGraph::Object<Magnum::SceneGraph::MatrixTransformation3D>& object,
+                       Magnum::SceneGraph::DrawableGroup3D*                                    group,
+                       unsigned intersect_id) -> void override;
+
+    [[nodiscard]] auto drawable() const -> Magnum::SceneGraph::Drawable3D* override;
+
+    auto set_display_info(gvs::DisplayInfo const& display_info) -> void override;
+
+    auto resize(Magnum::Vector2i const& viewport) -> void override;
+    // gvs::OpenGLRenderable end
+
+    auto update(util::Duration const& sim_time) -> void;
+
+private:
+    class ExampleDrawable;
+
+    std::shared_ptr<ExampleDrawable> drawable_;
+};
+
+} // namespace ltb::example

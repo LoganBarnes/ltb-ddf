@@ -22,15 +22,35 @@
 // ///////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-namespace ltb {
-namespace gvs {
+// project
+#include "ltb/gvs/core/custom_renderable.hpp"
+#include "ltb/gvs/core/types.hpp"
 
-class Scene;
-class SceneUpdateHandler;
+// external
+#include <Magnum/SceneGraph/Drawable.h>
 
-struct GeometryInfo;
-struct SceneItemInfo;
-struct DisplayInfo;
+namespace ltb::gvs {
 
-} // namespace gvs
-} // namespace ltb
+class OpenglRenderable : public CustomRenderable {
+public:
+    ~OpenglRenderable() override = 0;
+
+    // CustomRenderable start
+    auto configure_gui(DisplayInfo* display_info) -> bool override = 0;
+    // CustomRenderable end
+
+    virtual auto init_gl_types(Magnum::SceneGraph::Object<Magnum::SceneGraph::MatrixTransformation3D>& object,
+                               Magnum::SceneGraph::DrawableGroup3D*                                    group,
+                               unsigned intersect_id) -> void
+        = 0;
+
+    [[nodiscard]] virtual auto drawable() const -> Magnum::SceneGraph::Drawable3D* = 0;
+
+    virtual auto set_display_info(DisplayInfo const& display_info) -> void = 0;
+
+    virtual auto resize(Magnum::Vector2i const& viewport) -> void = 0;
+};
+
+inline OpenglRenderable::~OpenglRenderable() = default;
+
+} // namespace ltb::gvs

@@ -54,10 +54,10 @@ struct SceneGetter {
 
     auto operator()(SceneItemInfo const& info) -> void { *data_ = info.*member; }
 
-    SceneGetter(const SceneGetter&)     = delete;
+    SceneGetter(SceneGetter const&)     = delete;
     SceneGetter(SceneGetter&&) noexcept = delete;
-    SceneGetter& operator=(const SceneGetter&) = delete;
-    SceneGetter& operator=(SceneGetter&&) noexcept = delete;
+    auto operator=(SceneGetter const&) -> SceneGetter& = delete;
+    auto operator=(SceneGetter&&) noexcept -> SceneGetter& = delete;
 
 private:
     T* data_;
@@ -72,10 +72,10 @@ struct SceneGeometryGetter {
 
     auto operator()(SceneItemInfo const& info) -> void { *data_ = info.geometry_info.*member; }
 
-    SceneGeometryGetter(const SceneGeometryGetter&)     = delete;
+    SceneGeometryGetter(SceneGeometryGetter const&)     = delete;
     SceneGeometryGetter(SceneGeometryGetter&&) noexcept = delete;
-    SceneGeometryGetter& operator=(const SceneGeometryGetter&) = delete;
-    SceneGeometryGetter& operator=(SceneGeometryGetter&&) noexcept = delete;
+    auto operator=(SceneGeometryGetter const&) -> SceneGeometryGetter& = delete;
+    auto operator=(SceneGeometryGetter&&) noexcept -> SceneGeometryGetter& = delete;
 
 private:
     T* data_;
@@ -90,10 +90,10 @@ struct SceneDisplayGetter {
 
     auto operator()(SceneItemInfo const& info) -> void { *data_ = info.display_info.*member; }
 
-    SceneDisplayGetter(const SceneDisplayGetter&)     = delete;
+    SceneDisplayGetter(SceneDisplayGetter const&)     = delete;
     SceneDisplayGetter(SceneDisplayGetter&&) noexcept = delete;
-    SceneDisplayGetter& operator=(const SceneDisplayGetter&) = delete;
-    SceneDisplayGetter& operator=(SceneDisplayGetter&&) noexcept = delete;
+    auto operator=(SceneDisplayGetter const&) -> SceneDisplayGetter& = delete;
+    auto operator=(SceneDisplayGetter&&) noexcept -> SceneDisplayGetter& = delete;
 
 protected:
     T* data_;
@@ -110,8 +110,9 @@ using GetTextureCoordinates3d = detail::SceneGeometryGetter<AttributeVector<2>, 
 using GetVertexColors3d       = detail::SceneGeometryGetter<AttributeVector<3>, &GeometryInfo::vertex_colors>;
 using GetIndices              = detail::SceneGeometryGetter<std::vector<unsigned>, &GeometryInfo::indices>;
 
-using GetParent   = detail::SceneGetter<SceneId, &SceneItemInfo::parent>;
-using GetChildren = detail::SceneGetter<std::vector<SceneId>, &SceneItemInfo::children>;
+using GetRenderable = detail::SceneGetter<std::shared_ptr<CustomRenderable>, &SceneItemInfo::renderable>;
+using GetParent     = detail::SceneGetter<SceneId, &SceneItemInfo::parent>;
+using GetChildren   = detail::SceneGetter<std::vector<SceneId>, &SceneItemInfo::children>;
 
 using GetReadableId     = detail::SceneDisplayGetter<std::string, &DisplayInfo::readable_id>;
 using GetGeometryFormat = detail::SceneDisplayGetter<GeometryFormat, &DisplayInfo::geometry_format>;

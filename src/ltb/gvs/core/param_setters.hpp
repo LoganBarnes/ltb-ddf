@@ -188,7 +188,7 @@ protected:
 } // namespace detail
 
 ///
-/// \brief A "named parameter" wrapper used to set geometry info for items in a StaticScene
+/// \brief A "named parameter" wrapper used to set primitive items in a StaticScene
 ///
 struct SetPrimitive {
     explicit SetPrimitive(Primitive value) : data_(std::move(value)) {}
@@ -209,6 +209,30 @@ struct SetPrimitive {
 
 private:
     Primitive data_;
+};
+
+///
+/// \brief A "named parameter" wrapper used to set custom renderable items in a StaticScene
+///
+struct SetRenderable {
+    explicit SetRenderable(std::shared_ptr<CustomRenderable> value) : data_(std::move(value)) {}
+
+    auto operator()(SparseSceneItemInfo* info) -> std::string {
+        if (info->geometry) {
+            return "Geometry already specified";
+        }
+
+        info->geometry = std::make_unique<Geometry>(std::move(data_));
+        return "";
+    }
+
+    SetRenderable(const SetRenderable&)     = delete;
+    SetRenderable(SetRenderable&&) noexcept = delete;
+    SetRenderable& operator=(const SetRenderable&) = delete;
+    SetRenderable& operator=(SetRenderable&&) noexcept = delete;
+
+private:
+    std::shared_ptr<CustomRenderable> data_;
 };
 
 /*

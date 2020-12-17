@@ -23,6 +23,7 @@
 #pragma once
 
 // project
+#include "example_renderable.hpp"
 #include "ltb/gvs/display/gui/imgui_magnum_application.hpp"
 #include "ltb/gvs/display/local_scene.hpp"
 
@@ -42,6 +43,13 @@ private:
 
     // Scene
     gvs::LocalScene scene_;
+
+    // Renderable
+    std::shared_ptr<ExampleRenderable> renderable_ = nullptr;
+
+    // Timing
+    std::chrono::steady_clock::time_point start_time_;
+    std::chrono::steady_clock::time_point current_time_;
 };
 
 } // namespace ltb::example

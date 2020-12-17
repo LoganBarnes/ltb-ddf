@@ -41,6 +41,7 @@ struct UpdatedInfo {
     explicit UpdatedInfo(SparseSceneItemInfo const& info);
 
     static auto everything() -> UpdatedInfo;
+    static auto everything_but_geometry() -> UpdatedInfo;
     static auto children_only() -> UpdatedInfo;
 
 private:

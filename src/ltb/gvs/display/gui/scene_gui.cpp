@@ -36,29 +36,24 @@ namespace {
 auto configure_scene_gui(SceneId const& item_id, Scene* scene) -> bool {
     const ImVec4 gray = {0.5f, 0.5f, 0.5f, 1.f};
 
-    std::string    readable_id;
-    GeometryFormat geometry_format;
-    mat4           transformation;
-    vec3           uniform_color;
-    Coloring       coloring;
-    Shading        shading;
-    bool           visible;
-    float          opacity;
-    bool           wireframe_only;
+    DisplayInfo display_info;
 
-    bool has_geometry;
-    bool has_children;
+    bool has_geometry{};
+    bool has_children{};
+
+    std::shared_ptr<CustomRenderable> renderable;
 
     scene->get_item_info(item_id,
-                         GetReadableId(&readable_id),
-                         GetGeometryFormat(&geometry_format),
-                         GetTransformation(&transformation),
-                         GetUniformColor(&uniform_color),
-                         GetColoring(&coloring),
-                         GetShading(&shading),
-                         IsVisible(&visible),
-                         GetOpacity(&opacity),
-                         IsWireframeOnly(&wireframe_only),
+                         GetRenderable(&renderable),
+                         GetReadableId(&display_info.readable_id),
+                         GetGeometryFormat(&display_info.geometry_format),
+                         GetTransformation(&display_info.transformation),
+                         GetUniformColor(&display_info.uniform_color),
+                         GetColoring(&display_info.coloring),
+                         GetShading(&display_info.shading),
+                         IsVisible(&display_info.visible),
+                         GetOpacity(&display_info.opacity),
+                         IsWireframeOnly(&display_info.wireframe_only),
                          HasGeometry(&has_geometry),
                          HasChildren(&has_children));
 
@@ -68,84 +63,33 @@ auto configure_scene_gui(SceneId const& item_id, Scene* scene) -> bool {
     bool item_changed     = false;
     bool children_changed = false;
 
-    item_changed |= ImGui::Checkbox("###visible", &visible);
+    item_changed |= ImGui::Checkbox("###visible", &display_info.visible);
     ImGui::SameLine();
 
-    auto tree_label = readable_id + "###" + id_str;
+    auto tree_label = display_info.readable_id + "###" + id_str;
 
     if (ImGui::TreeNode(tree_label.c_str())) {
         ScopedIndent scoped_indent;
         ImGui::Separator();
 
-        item_changed |= configure_gui("###readable_id", &readable_id);
+        if (renderable) {
+            item_changed |= renderable->configure_gui(&display_info);
+        } else {
+            item_changed |= configure_gui(&display_info, !has_geometry);
+        }
 
-        if (visible) {
-            if (has_geometry) {
-                item_changed |= ImGui::Checkbox("Wireframe", &wireframe_only);
+        if (has_children) {
+            ImGui::TextColored(gray, "Children:");
 
-                auto icoloring = std::underlying_type_t<Coloring>(coloring);
-                if (ImGui::Combo("Display Mode",
-                                 &icoloring,
-                                 " Positions \0"
-                                 " Normals \0"
-                                 " Texture Coordinates \0"
-                                 " Vertex Colors \0"
-                                 " Uniform Color \0"
-                                 " Texture \0"
-                                 " White \0"
-                                 "\0")) {
-                    item_changed = true;
-                    coloring     = static_cast<Coloring>(icoloring);
-                }
+            std::vector<SceneId> children;
+            scene->get_item_info(item_id, GetChildren(&children));
 
-                auto igeometry_format = std::underlying_type_t<GeometryFormat>(geometry_format);
-                if (ImGui::Combo("Geometry Format",
-                                 &igeometry_format,
-                                 " Points \0"
-                                 " Lines \0"
-                                 " Line Strip \0"
-                                 " Triangles \0"
-                                 " Triangle Strip \0"
-                                 " Triangle Fan \0"
-                                 "\0")) {
-                    item_changed    = true;
-                    geometry_format = static_cast<GeometryFormat>(igeometry_format);
-                }
-
-                auto ishading = std::underlying_type_t<Shading>(shading);
-                if (ImGui::Combo("Shading",
-                                 &ishading,
-                                 " Uniform Color \0"
-                                 " Lambertian \0"
-                                 " Cook-Torrance \0"
-                                 "\0")) {
-                    item_changed = true;
-                    shading      = static_cast<Shading>(ishading);
-                }
-
-                if (coloring == Coloring::UniformColor) {
-                    item_changed |= ImGui::ColorEdit3("Global Color", uniform_color.data());
-                }
-
-                {
-                    Disable::Guard disable_opacity(true /*wireframe_only*/);
-                    item_changed |= ImGui::DragFloat("Opacity", &opacity, 0.01f, 0.f, 1.f);
-                }
+            for (auto const& child_id : children) {
+                children_changed |= configure_scene_gui(child_id, scene);
             }
 
-            if (has_children) {
-                ImGui::TextColored(gray, "Children:");
-
-                std::vector<SceneId> children;
-                scene->get_item_info(item_id, GetChildren(&children));
-
-                for (auto const& child_id : children) {
-                    children_changed |= configure_scene_gui(child_id, scene);
-                }
-
-            } else {
-                ImGui::TextColored(ImVec4(1.f, 1.f, 0.1f, 1.f), "No Children");
-            }
+        } else {
+            ImGui::TextColored(ImVec4(1.f, 1.f, 0.1f, 1.f), "No Children");
         }
 
         ImGui::TreePop();
@@ -153,21 +97,94 @@ auto configure_scene_gui(SceneId const& item_id, Scene* scene) -> bool {
 
     if (item_changed) {
         scene->update_item(item_id,
-                           SetReadableId(readable_id),
-                           SetGeometryFormat(geometry_format),
-                           SetTransformation(transformation),
-                           SetUniformColor(uniform_color),
-                           SetColoring(coloring),
-                           SetShading(shading),
-                           SetVisible(visible),
-                           SetOpacity(opacity),
-                           SetWireframeOnly(wireframe_only));
+                           SetReadableId(display_info.readable_id),
+                           SetGeometryFormat(display_info.geometry_format),
+                           SetTransformation(display_info.transformation),
+                           SetUniformColor(display_info.uniform_color),
+                           SetColoring(display_info.coloring),
+                           SetShading(display_info.shading),
+                           SetVisible(display_info.visible),
+                           SetOpacity(display_info.opacity),
+                           SetWireframeOnly(display_info.wireframe_only));
     }
 
     return item_changed | children_changed;
 }
 
 } // namespace
+
+auto configure_gui(Coloring* coloring) -> bool {
+    auto icoloring = std::underlying_type_t<Coloring>(*coloring);
+    if (ImGui::Combo("Display Mode",
+                     &icoloring,
+                     " Positions \0"
+                     " Normals \0"
+                     " Texture Coordinates \0"
+                     " Vertex Colors \0"
+                     " Uniform Color \0"
+                     " Texture \0"
+                     " White \0"
+                     "\0")) {
+        *coloring = static_cast<Coloring>(icoloring);
+        return true;
+    }
+    return false;
+}
+
+auto configure_gui(GeometryFormat* geometry_format) -> bool {
+    auto igeometry_format = std::underlying_type_t<GeometryFormat>(*geometry_format);
+    if (ImGui::Combo("Geometry Format",
+                     &igeometry_format,
+                     " Points \0"
+                     " Lines \0"
+                     " Line Strip \0"
+                     " Triangles \0"
+                     " Triangle Strip \0"
+                     " Triangle Fan \0"
+                     "\0")) {
+        *geometry_format = static_cast<GeometryFormat>(igeometry_format);
+        return true;
+    }
+    return false;
+}
+
+auto configure_gui(Shading* shading) -> bool {
+    auto ishading = std::underlying_type_t<Shading>(*shading);
+    if (ImGui::Combo("Shading",
+                     &ishading,
+                     " Uniform Color \0"
+                     " Lambertian \0"
+                     " Cook-Torrance \0"
+                     "\0")) {
+        *shading = static_cast<Shading>(ishading);
+        return true;
+    }
+    return false;
+}
+
+auto configure_gui(DisplayInfo* display_info, bool display_name_only) -> bool {
+    bool something_changed = false;
+    something_changed |= configure_gui("###readable_id", &display_info->readable_id);
+
+    if (display_info->visible && !display_name_only) {
+        something_changed |= ImGui::Checkbox("Wireframe", &display_info->wireframe_only);
+
+        something_changed |= configure_gui(&display_info->coloring);
+        something_changed |= configure_gui(&display_info->geometry_format);
+        something_changed |= configure_gui(&display_info->shading);
+
+        if (display_info->coloring == Coloring::UniformColor) {
+            something_changed |= ImGui::ColorEdit3("Global Color", display_info->uniform_color.data());
+        }
+
+        {
+            Disable::Guard disable_opacity(true /*wireframe_only*/);
+            something_changed |= ImGui::DragFloat("Opacity", &display_info->opacity, 0.01f, 0.f, 1.f);
+        }
+    }
+
+    return something_changed;
+}
 
 auto configure_gui(Scene* scene) -> bool {
     std::vector<SceneId> children;

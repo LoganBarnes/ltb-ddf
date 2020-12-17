@@ -20,17 +20,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ///////////////////////////////////////////////////////////////////////////////////////
-#pragma once
 
-namespace ltb {
-namespace gvs {
+// version will be inserted automagically
 
-class Scene;
-class SceneUpdateHandler;
+in int gl_VertexID;
 
-struct GeometryInfo;
-struct SceneItemInfo;
-struct DisplayInfo;
+uniform mat4  projection_from_world = mat4(1.f);
+uniform float grid_width            = 10.f;
+uniform int   grid_divisions        = 0;
+uniform float time_secs             = 0.f;
 
-} // namespace gvs
-} // namespace ltb
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
+ivec2 grid_index(in int index_1d)
+{
+    int width = grid_divisions + 2;
+
+    ivec2 index_2d;
+    index_2d.y = index_1d / width;
+    index_2d.x = index_1d - (width * index_2d.y);
+    return index_2d;
+}
+
+void main()
+{
+    ivec2 index_2d = grid_index(gl_VertexID);
+
+    vec2 tex_coords  = vec2(index_2d) / float(grid_divisions + 1);
+
+    vec3 world_position;
+    world_position.xy  = tex_coords * grid_width - grid_width * 0.5f;
+    world_position.z   = -10.f;
+    world_position.z  += cos(time_secs + tex_coords.x * 10.f);
+    world_position.z  += sin(time_secs + tex_coords.y * 10.f);
+    world_position.z  *= 0.2f;
+
+    gl_Position = projection_from_world * vec4(world_position, 1.f);
+}
