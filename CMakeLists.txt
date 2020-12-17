@@ -18,6 +18,11 @@ include(${CMAKE_CURRENT_LIST_DIR}/ltb-gvs/ltb-net/ltb-util/cmake/LtbConfig.cmake
 set(LTB_GVS_ENABLE_NETWORKING "OFF" CACHE INTERNAL "")
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/ltb-gvs)
 
+####################
+#### Third Party ###
+####################
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/ThirdParty.cmake)
+
 #####################
 #### Source Files ###
 #####################
@@ -63,6 +68,7 @@ ltb_link_libraries(ltb_ddf_viewer
         PUBLIC
         Ltb::Gvs
         Ltb::Ddf
+        LtbExternal::ImGuiNodeEditor
         )
 add_library(Ltb::DdfViewer ALIAS ltb_ddf_viewer)
 

@@ -4,6 +4,7 @@
 #pragma once
 
 // project
+#include "graph_sub_view.hpp"
 #include "ltb/gvs/display/gui/imgui_magnum_application.hpp"
 
 namespace ltb::ddf::vis {
@@ -21,6 +22,8 @@ private:
     auto resize(Magnum::Vector2i const& viewport) -> void final;
 
     auto handleKeyReleaseEvent(KeyEvent& event) -> void final;
+
+    GraphSubView graph_sub_view_;
 };
 
 } // namespace ltb::ddf::vis
