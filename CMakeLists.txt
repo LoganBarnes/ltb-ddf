@@ -69,6 +69,7 @@ ltb_link_libraries(ltb_ddf_viewer
         Ltb::Gvs
         Ltb::Ddf
         LtbExternal::ImGuiNodeEditor
+        LtbExternal::Flexcore
         )
 add_library(Ltb::DdfViewer ALIAS ltb_ddf_viewer)
 
