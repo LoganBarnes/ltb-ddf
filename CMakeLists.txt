@@ -1,63 +1,74 @@
 ##########################################################################################
-# LTB Dynamic Dataflow
 # Copyright (c) 2020 Logan Barnes - All Rights Reserved
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 ##########################################################################################
-cmake_minimum_required(VERSION 3.16.5)
+cmake_minimum_required(VERSION 3.18)
 project(LtbDynamicDataflow LANGUAGES CXX)
 
-option(LTB_DDF_BUILD_EXAMPLES "Build example programs" OFF)
+# Download external repos into a shared directory outside
+# the build folders to prevent multiple repeat downloads
+set(FETCHCONTENT_BASE_DIR
+        ${CMAKE_SOURCE_DIR}/cmake-build-deps
+        CACHE PATH ""
+        )
 
-include(ltb-util/cmake/LtbConfig.cmake) # <-- Additional project options are in here.
+include(${CMAKE_CURRENT_LIST_DIR}/ltb-gvs/ltb-net/ltb-util/cmake/LtbConfig.cmake)
+# Additional project options are in here ^
 
-############
-### Util ###
-############
-add_subdirectory(ltb-util)
+### GVS ###
+set(LTB_GVS_ENABLE_NETWORKING "OFF" CACHE INTERNAL "")
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/ltb-gvs)
 
-###########
-### DDF ###
-###########
-add_library(ltb_ddf INTERFACE)
-
-################
-### DDF Core ###
-################
-file(GLOB_RECURSE LTB_SOURCE_FILES
+#####################
+#### Source Files ###
+#####################
+file(GLOB_RECURSE LTB_DDF_VIS_SOURCE_FILES
+        LIST_DIRECTORIES false
+        CONFIGURE_DEPENDS
+        ${CMAKE_CURRENT_LIST_DIR}/src/ddf/viewer/*
+        )
+file(GLOB_RECURSE LTB_DDF_CORE_SOURCE_FILES
         LIST_DIRECTORIES false
         CONFIGURE_DEPENDS
         ${CMAKE_CURRENT_LIST_DIR}/src/ddf/core/*
         )
+set(LTB_DDF_VIS_MAIN_FILE ${CMAKE_CURRENT_LIST_DIR}/src/ddf/viewer/main.cpp)
+list(REMOVE_ITEM LTB_DDF_VIS_SOURCE_FILES ${LTB_DDF_VIS_MAIN_FILE})
 
-ltb_add_library(ltb_dvh_core 17 ${LTB_SOURCE_FILES})
-ltb_link_libraries(ltb_dvh_core
-        PUBLIC
-        ltb_util
+################
+### DDF Core ###
+################
+ltb_add_library(ltb_ddf_core
+        17
+        ${LTB_DDF_CORE_SOURCE_FILES}
         )
-include_directories(ltb_dvh_core
+ltb_link_libraries(ltb_ddf_core
         PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>"
+        Ltb::Util
         )
+include_directories(ltb_ddf_core
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
+        )
+add_library(Ltb::Ddf ALIAS ltb_ddf_core)
 
-target_link_libraries(ltb_ddf INTERFACE ltb_dvh_core)
+##################
+### DDF Viewer ###
+##################
+ltb_add_executable(ltb_ddf_viewer
+        17
+        ${LTB_DDF_VIS_MAIN_FILE}
+        ${LTB_DDF_VIS_SOURCE_FILES}
+        )
+ltb_link_libraries(ltb_ddf_viewer
+        PUBLIC
+        Ltb::Gvs
+        Ltb::Ddf
+        )
+add_library(Ltb::DdfViewer ALIAS ltb_ddf_viewer)
 
+################
+### Examples ###
+################
 if (${LTB_DDF_BUILD_EXAMPLES})
     add_subdirectory(examples)
 endif ()
